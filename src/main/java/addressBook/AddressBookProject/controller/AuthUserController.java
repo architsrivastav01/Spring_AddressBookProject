@@ -1,8 +1,6 @@
 package addressBook.AddressBookProject.controller;
 
-import addressBook.AddressBookProject.DTO.AuthUserDTO;
-import addressBook.AddressBookProject.DTO.LoginDTO;
-import addressBook.AddressBookProject.Exception.ResponseDTO;
+import addressBook.AddressBookProject.DTO.*;
 import addressBook.AddressBookProject.Model.AuthUser;
 import addressBook.AddressBookProject.Service.AuthenticationService;
 import jakarta.validation.Valid;
@@ -29,4 +27,22 @@ public class AuthUserController {
         ResponseDTO responseUserDTO=new ResponseDTO("Login successfully!!",result);
         return  new ResponseEntity<>(responseUserDTO, HttpStatus.OK);
     }
+
+    @PutMapping("/forgotPassword/{email}")
+    public ResponseEntity<ResponseDTO> forgotPassword(@PathVariable String email,
+                                                      @Valid @RequestBody ForgetPasswordDTO forgotPasswordDTO) {
+        String responseMessage = authenticationService.forgotPassword(email, forgotPasswordDTO.getPassword());
+        ResponseDTO responseDTO = new ResponseDTO(responseMessage, null);
+        return new ResponseEntity<>(responseDTO, HttpStatus.OK);
+    }
+
+    @PutMapping("/resetPassword/{email}")
+    public ResponseEntity<ResponseDTO> resetPassword(@PathVariable String email,
+                                                     @Valid @RequestBody ResetPasswordDTO resetPasswordDTO) {
+        String responseMessage = authenticationService.resetPassword(email,
+                resetPasswordDTO.getCurrentPassword(),
+                resetPasswordDTO.getNewPassword());
+        return new ResponseEntity<>(new ResponseDTO(responseMessage, null), HttpStatus.OK);
+    }
+
 }
