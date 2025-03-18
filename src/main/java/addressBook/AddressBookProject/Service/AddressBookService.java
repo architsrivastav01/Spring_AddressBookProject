@@ -1,11 +1,11 @@
 package addressBook.AddressBookProject.Service;
 
+
 import addressBook.AddressBookProject.DTO.AddressBookDTO;
 import addressBook.AddressBookProject.Exception.UserException;
 import addressBook.AddressBookProject.Interface.IAddressBookService;
 import addressBook.AddressBookProject.Repository.AddressRepository;
 import addressBook.AddressBookProject.Model.AddressBookModel;
-import addressBook.AddressBookProject.publisher.RabbitMQPublisher;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +25,6 @@ public class AddressBookService implements IAddressBookService {
     @Autowired
     private AddressRepository repository;
 
-    @Autowired
-    private RabbitMQPublisher rabbitMQPublisher; // ✅ RabbitMQPublisher Inject
-
     // ===================== GET ALL CONTACTS =====================
     @Override
     @Cacheable(value = "contacts", key = "#root.methodName")
@@ -44,6 +41,7 @@ public class AddressBookService implements IAddressBookService {
                             .collect(Collectors.toList());
 
             long end = System.currentTimeMillis();
+
             log.info("DB Query Time: {}ms", (end - start));
             return contacts;
 
@@ -53,9 +51,10 @@ public class AddressBookService implements IAddressBookService {
         }
     }
 
+
     // ===================== SAVE CONTACT =====================
     @Override
-    @CacheEvict(value = "contacts", allEntries = true)
+    @CacheEvict(value = "contacts", allEntries = true) // Clears cache after save
     public AddressBookDTO saveContact(AddressBookDTO dto) {
         log.info("Saving new contact: {}", dto);
 
@@ -63,9 +62,6 @@ public class AddressBookService implements IAddressBookService {
         contact.setName(dto.getName());
         contact.setPhone(dto.getPhone());
         AddressBookModel savedContact = repository.save(contact);
-
-        // 🔔 Send RabbitMQ Event
-        rabbitMQPublisher.sendMessage("contactQueue", "New contact created: " + savedContact.getName());
 
         log.info("✅ Contact saved successfully with ID: {}", savedContact.getId());
         return new AddressBookDTO(savedContact.getId(), savedContact.getName(), savedContact.getPhone());
@@ -78,6 +74,7 @@ public class AddressBookService implements IAddressBookService {
         log.info("Fetching contact with ID: {}", id);
 
         Optional<AddressBookModel> contact = repository.findById(id);
+
         if (contact.isEmpty()) {
             log.warn("❗ Contact with ID {} not found.", id);
             throw new UserException("Contact not found with ID: " + id);
@@ -99,9 +96,6 @@ public class AddressBookService implements IAddressBookService {
         contact.setPhone(dto.getPhone());
         AddressBookModel updatedContact = repository.save(contact);
 
-        // 🔔 Send RabbitMQ Event
-        rabbitMQPublisher.sendMessage("contactQueue", "Contact updated: " + updatedContact.getName());
-
         log.info("✅ Contact updated successfully: {}", updatedContact);
         return new AddressBookDTO(updatedContact.getId(), updatedContact.getName(), updatedContact.getPhone());
     }
@@ -113,16 +107,13 @@ public class AddressBookService implements IAddressBookService {
         log.info("Deleting contact with ID: {}", id);
 
         if (!repository.existsById(id)) {
-            log.warn(" Attempted to delete non-existing contact with ID: {}", id);
+            log.warn("❗ Attempted to delete non-existing contact with ID: {}", id);
             throw new UserException("Contact not found with ID: " + id);
         }
 
         repository.deleteById(id);
-
-        // 🔔 Send RabbitMQ Event
-        rabbitMQPublisher.sendMessage("contactQueue", "Contact deleted with ID: " + id);
-
         log.info("✅ Contact with ID {} deleted successfully.", id);
+
         return true;
     }
 }
