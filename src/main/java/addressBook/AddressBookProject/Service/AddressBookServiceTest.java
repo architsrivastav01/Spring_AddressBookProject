@@ -5,7 +5,7 @@
 //import addressBook.AddressBookProject.DTO.AddressBookDTO;
 //import addressBook.AddressBookProject.Exception.UserException;
 //import addressBook.AddressBookProject.Repository.AddressRepository;
-//import addressBook.AddressBookProject.Model.AddressBookModel;
+//import addressBook.AddressBookProject.Modejl.AddressBookModel;
 //import org.junit.jupiter.api.BeforeEach;
 //import org.junit.jupiter.api.Test;
 //import org.junit.jupiter.api.extension.ExtendWith;
