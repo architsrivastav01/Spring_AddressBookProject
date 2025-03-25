@@ -1,32 +1,38 @@
 package addressBook.AddressBookProject.Util;
 
-
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
+
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
-public class jwttoken{
+public class jwttoken {
 
-    private static final String TOKEN_SECRET = "6F9t$D@&kV%8eXzB#R!qP3WmYs*TgJ+CnL^o5h2M4aK";
+    private static final String TOKEN_SECRET = "Lock";
+    private static final Map<Long, String> activeTokens = new HashMap<>();
 
     public String createToken(Long id) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(TOKEN_SECRET);
+
             String token = JWT.create()
                     .withClaim("user_id", id)
-                    .withExpiresAt(Date.from(Instant.now().plus(1, ChronoUnit.DAYS))) // 1-day expiry
+                    .withExpiresAt(Date.from(Instant.now().plusSeconds(60))) // Token valid for 1 minute
                     .sign(algorithm);
+
+            activeTokens.put(id, token); // Save token
             return token;
-        } catch (JWTCreationException exception) {
+
+        } catch (JWTCreationException | IllegalArgumentException exception) {
             exception.printStackTrace();
         }
         return null;
@@ -42,4 +48,29 @@ public class jwttoken{
         }
     }
 
+    public boolean validateToken(String token) {
+        try {
+            JWTVerifier verifier = JWT.require(Algorithm.HMAC256(TOKEN_SECRET)).build();
+            DecodedJWT decodedJWT = verifier.verify(token);
+            return true;
+        } catch (JWTVerificationException e) {
+            throw new RuntimeException("Token has expired or is invalid.");
+        }
+    }
+
+    public boolean isUserLoggedIn(Long userId, String token) {
+        return activeTokens.containsKey(userId) && activeTokens.get(userId).equals(token);
+    }
+
+    public void logoutUser(Long userId) {
+        activeTokens.remove(userId);
+    }
+
+    public Long getCurrentUserId(String token) {
+        return decodeToken(token);
+    }
+
+    public String getCurrentToken(Long userId) {
+        return activeTokens.get(userId);
+    }
 }
